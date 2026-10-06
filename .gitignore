@@ -1,0 +1,30 @@
+# TypeScript / Node.js
+node_modules/
+*.js
+!jest.config.js
+*.d.ts
+*.tsbuildinfo
+
+# AWS CDK
+cdk.out/
+.cdk.staging/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Test output
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE / editor
+.vscode/
+.idea/
+
+# Operating system
+.DS_Store
+Thumbs.db

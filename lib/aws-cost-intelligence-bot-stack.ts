@@ -4,6 +4,7 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 import * as path from 'path';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 export class AwsCostIntelligenceBotStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -36,5 +37,13 @@ export class AwsCostIntelligenceBotStack extends cdk.Stack {
         sourceMap: true,
       },
     });
+
+    // Grants the Lambda permission to retrieve AWS cost and usage data.
+    costIntelligenceLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ce:GetCostAndUsage'],
+        resources: ['*'],
+      }),
+    );
   }
 }

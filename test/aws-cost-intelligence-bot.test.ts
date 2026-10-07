@@ -28,3 +28,18 @@ test('configures seven day log retention', () => {
     RetentionInDays: 7,
   });
 });
+
+// Verifies the Lambda can retrieve cost and usage data from Cost Explorer.
+test('grants Cost Explorer read permission', () => {
+  template.hasResourceProperties('AWS::IAM::Policy', {
+    PolicyDocument: {
+      Statement: [
+        {
+          Action: 'ce:GetCostAndUsage',
+          Effect: 'Allow',
+          Resource: '*',
+        },
+      ],
+    },
+  });
+});

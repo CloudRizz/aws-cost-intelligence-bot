@@ -1,6 +1,7 @@
 import {
   getMonthToDateCost,
   getYesterdayCost,
+  getPreviousDayCost,
 } from './cost-explorer';
 
 // Defines the Lambda entry point for the AWS Cost Intelligence Bot.
@@ -14,9 +15,15 @@ export const handler = async (): Promise<void> => {
   // Retrieves the current month's AWS cost to date from Cost Explorer.
   const monthToDateCost = await getMonthToDateCost();
 
+  // Retrieves the previous day's AWS cost from Cost Explorer.
+  const previousDayCost = await getPreviousDayCost();
+
   // Logs yesterday's structured cost data for operational visibility.
   console.log('Yesterday cost:', yesterdayCost);
 
   // Logs the month-to-date structured cost data for operational visibility.
   console.log('Month-to-date cost:', monthToDateCost);
+
+  // Logs the previous day's structured cost data for operational visibility.
+  console.log('Previous day cost:', previousDayCost);
 };

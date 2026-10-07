@@ -20,28 +20,26 @@ const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
 
-// Retrieves yesterday's AWS cost from Cost Explorer.
-export const getYesterdayCost = async (): Promise<CostData> => {
-  // Calculates today's and yesterday's dates in UTC.
-  const today = new Date();
-  const yesterday = new Date(today);
-
-  yesterday.setUTCDate(today.getUTCDate() - 1);
-
-  // Builds the Cost Explorer request for yesterday's unblended cost.
+// Retrieves AWS cost for a specified date range from Cost Explorer.
+const getCostForPeriod = async (
+  startDate: Date,
+  endDate: Date,
+  granularity: 'DAILY' | 'MONTHLY',
+): Promise<CostData> => {
+  // Builds the Cost Explorer request for the specified period.
   const command = new GetCostAndUsageCommand({
     TimePeriod: {
-      Start: formatDate(yesterday),
-      End: formatDate(today),
+      Start: formatDate(startDate),
+      End: formatDate(endDate),
     },
-    Granularity: 'DAILY',
+    Granularity: granularity,
     Metrics: ['UnblendedCost'],
   });
 
   // Sends the request to Cost Explorer.
   const response = await costExplorerClient.send(command);
 
-  // Extracts yesterday's result from the Cost Explorer response.
+  // Extracts the cost result from the Cost Explorer response.
   const result = response.ResultsByTime?.[0];
 
   // Converts the returned cost amount into a number and defaults missing cost to zero.
@@ -50,12 +48,38 @@ export const getYesterdayCost = async (): Promise<CostData> => {
   // Uses the returned currency unit and defaults to USD when unavailable.
   const currency = result?.Total?.UnblendedCost?.Unit ?? 'USD';
 
-  // Returns yesterday's cost in a consistent structure for further analysis.
+  // Returns the cost in a consistent structure for further analysis.
   return {
-    date: formatDate(yesterday),
+    date: formatDate(startDate),
     amount,
     currency,
   };
+};
+
+// Retrieves yesterday's AWS cost from Cost Explorer.
+export const getYesterdayCost = async (): Promise<CostData> => {
+  // Calculates today's and yesterday's dates in UTC.
+  const today = new Date();
+  const yesterday = new Date(today);
+
+  yesterday.setUTCDate(today.getUTCDate() - 1);
+
+  // Retrieves yesterday's daily cost using the shared Cost Explorer function.
+  return getCostForPeriod(yesterday, today, 'DAILY');
+};
+
+// Retrieves the previous day's AWS cost from Cost Explorer.
+export const getPreviousDayCost = async (): Promise<CostData> => {
+  // Calculates yesterday's date and the previous day's date in UTC.
+  const today = new Date();
+  const yesterday = new Date(today);
+  const previousDay = new Date(today);
+
+  yesterday.setUTCDate(today.getUTCDate() - 1);
+  previousDay.setUTCDate(today.getUTCDate() - 2);
+
+  // Retrieves the previous day's cost using the shared Cost Explorer function.
+  return getCostForPeriod(previousDay, yesterday, 'DAILY');
 };
 
 // Retrieves the current month's AWS cost to date from Cost Explorer.
@@ -66,32 +90,6 @@ export const getMonthToDateCost = async (): Promise<CostData> => {
 
   monthStart.setUTCDate(1);
 
-  // Builds the Cost Explorer request for the current month's unblended cost.
-  const command = new GetCostAndUsageCommand({
-    TimePeriod: {
-      Start: formatDate(monthStart),
-      End: formatDate(today),
-    },
-    Granularity: 'MONTHLY',
-    Metrics: ['UnblendedCost'],
-  });
-
-  // Sends the request to Cost Explorer.
-  const response = await costExplorerClient.send(command);
-
-  // Extracts the month-to-date result from the Cost Explorer response.
-  const result = response.ResultsByTime?.[0];
-
-  // Converts the returned cost amount into a number and defaults missing cost to zero.
-  const amount = Number(result?.Total?.UnblendedCost?.Amount ?? '0');
-
-  // Uses the returned currency unit and defaults to USD when unavailable.
-  const currency = result?.Total?.UnblendedCost?.Unit ?? 'USD';
-
-  // Returns the month-to-date cost in a consistent structure for further analysis.
-  return {
-    date: formatDate(monthStart),
-    amount,
-    currency,
-  };
+  // Retrieves the month-to-date cost using the shared Cost Explorer function.
+  return getCostForPeriod(monthStart, today, 'MONTHLY');
 };

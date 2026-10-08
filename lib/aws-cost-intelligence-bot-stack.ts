@@ -4,8 +4,10 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
+
 import * as path from 'path';
 
 export class AwsCostIntelligenceBotStack extends cdk.Stack {
@@ -88,5 +90,41 @@ export class AwsCostIntelligenceBotStack extends cdk.Stack {
         ],
       }),
     );
+
+    // Detects Lambda execution errors during a five-minute monitoring period.
+    new cloudwatch.Alarm(this, 'CostIntelligenceLambdaErrorsAlarm', {
+      metric: costIntelligenceLambda.metricErrors({
+        period: cdk.Duration.minutes(5),
+        statistic: 'Sum',
+      }),
+
+      // Triggers when one or more Lambda execution errors occur.
+      threshold: 1,
+      evaluationPeriods: 1,
+
+      // Avoids treating periods without Lambda executions as failures.
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+
+      // Explains the purpose of the alarm in CloudWatch.
+      alarmDescription: 'AWS Cost Intelligence Bot Lambda execution failed.',
+    });
+
+    // Detects failed asynchronous events waiting in the SQS dead-letter queue.
+    new cloudwatch.Alarm(this, 'CostIntelligenceDlqMessagesAlarm', {
+      metric: costIntelligenceDlq.metricApproximateNumberOfMessagesVisible({
+        period: cdk.Duration.minutes(5),
+        statistic: 'Maximum',
+      }),
+
+      // Triggers when at least one failed event is visible in the queue.
+      threshold: 1,
+      evaluationPeriods: 1,
+
+      // Avoids alarming when the queue has no published metric data.
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+
+      // Explains the purpose of the alarm in CloudWatch.
+      alarmDescription: 'AWS Cost Intelligence Bot dead-letter queue contains failed events.',
+    });
   }
 }

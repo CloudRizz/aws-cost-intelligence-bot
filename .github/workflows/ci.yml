@@ -57,3 +57,40 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Scans the CDK-generated CloudFormation template for security misconfigurations.
+  infrastructure-security:
+    name: Checkov Infrastructure Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      # Downloads the repository.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Installs the Node.js version used by the Lambda project.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # Installs dependencies from the lockfile.
+      - name: Install dependencies
+        run: npm ci
+
+      # Generates the CloudFormation template without deploying AWS resources.
+      - name: Synthesize CDK
+        run: npx cdk synth --quiet
+
+      # Installs Checkov.
+      - name: Install Checkov
+        run: pip install checkov==3.3.26
+
+      # Checks the synthesized infrastructure against security policies.
+      - name: Scan infrastructure
+        run: |
+          checkov \
+            -f cdk.out/AwsCostIntelligenceBotStack.template.json \
+            --config-file .checkov.yaml \
+            --quiet

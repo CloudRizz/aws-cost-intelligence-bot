@@ -79,3 +79,27 @@ test('limits Lambda concurrency to one', () => {
     ReservedConcurrentExecutions: 1,
   });
 });
+
+// Verifies the dead-letter queue has seven-day retention and SQS-managed encryption.
+test('configures an encrypted SQS dead-letter queue', () => {
+  template.resourceCountIs('AWS::SQS::Queue', 1);
+
+  template.hasResourceProperties('AWS::SQS::Queue', {
+    MessageRetentionPeriod: 604800,
+    SqsManagedSseEnabled: true,
+  });
+});
+
+// Verifies the Lambda sends failed asynchronous invocations to the dead-letter queue.
+test('connects the dead-letter queue to Lambda', () => {
+  template.hasResourceProperties('AWS::Lambda::Function', {
+    DeadLetterConfig: {
+      TargetArn: {
+        'Fn::GetAtt': [
+          Match.anyValue(),
+          'Arn',
+        ],
+      },
+    },
+  });
+});

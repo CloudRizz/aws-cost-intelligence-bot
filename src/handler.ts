@@ -57,7 +57,6 @@ export const handler = async (): Promise<void> => {
     trend,
   ].join('\n');
 
-  // Records successful submission without exposing Telegram credentials.
 
   // Logs yesterday's structured cost data for operational visibility.
   console.log('Yesterday cost:', yesterdayCost);
@@ -76,6 +75,7 @@ export const handler = async (): Promise<void> => {
 
   // Sends the completed cost report to Telegram.
   await sendTelegramMessage(message);
+  // Records successful submission without exposing Telegram credentials.
   console.log('AWS cost report sent to Telegram');
 };
 

@@ -1,0 +1,10 @@
+# Extends the built-in Gitleaks detection rules.
+[extend]
+useDefault = true
+
+# Excludes generated CDK output from source-code scanning.
+[allowlist]
+description = "Ignore generated AWS CDK output"
+paths = [
+  '''(^|/)cdk\.out/''',
+]

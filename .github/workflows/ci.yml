@@ -1,0 +1,44 @@
+# Names the GitHub Actions workflow.
+name: CI - Build and Test
+
+# Runs checks when code is pushed or a pull request is opened.
+on:
+  push:
+  pull_request:
+
+# Restricts the workflow's GitHub token to read-only access.
+permissions:
+  contents: read
+
+jobs:
+  # Validates the TypeScript application and CDK infrastructure.
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Downloads the repository into the GitHub runner.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Installs Node.js 22 and enables npm dependency caching.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # Installs dependencies using the committed lockfile.
+      - name: Install dependencies
+        run: npm ci
+
+      # Checks that TypeScript compiles successfully.
+      - name: Build TypeScript
+        run: npm run build
+
+      # Runs the Jest unit and infrastructure tests.
+      - name: Run tests
+        run: npm test -- --runInBand
+
+      # Verifies that CDK can generate the CloudFormation template.
+      - name: Synthesise CDK
+        run: npx cdk synth

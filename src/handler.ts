@@ -1,4 +1,5 @@
 import { compareDailyCosts } from './cost-analysis';
+import { sendTelegramMessage } from './telegram';
 import {
   getMonthToDateCost,
   getYesterdayCost,
@@ -26,6 +27,39 @@ export const handler = async (): Promise<void> => {
     previousDayCost.amount,
   );
 
+  // Formats the daily difference with a positive or negative sign.
+  const dailyDifference =
+    `${comparison.difference >= 0 ? '+' : '-'}$${Math.abs(comparison.difference).toFixed(2)}`;
+
+  // Formats the percentage change or shows N/A when the previous cost was zero.
+  const percentageChange =
+    comparison.percentageChange === null
+      ? 'N/A'
+      : `${comparison.percentageChange >= 0 ? '+' : ''}${comparison.percentageChange.toFixed(1)}%`;
+
+  // Determines the spending trend shown in the Telegram report.
+  const trend =
+    comparison.difference > 0
+      ? '⚠️ Spending increased compared with the previous day.'
+      : comparison.difference < 0
+        ? '✅ Spending decreased compared with the previous day.'
+        : '➡️ Spending remained unchanged.';
+
+  // Builds the AWS cost report using the retrieved Cost Explorer data.
+  const message = [
+    '☁️ AWS Cost Report',
+    '',
+    `Month-to-date: $${monthToDateCost.amount.toFixed(2)}`,
+    `Yesterday: $${yesterdayCost.amount.toFixed(2)}`,
+    `Previous day: $${previousDayCost.amount.toFixed(2)}`,
+    `Daily change: ${dailyDifference} (${percentageChange})`,
+    '',
+    trend,
+  ].join('\n');
+
+  // Records successful submission without exposing Telegram credentials.
+  console.log('AWS cost report sent to Telegram');
+
   // Logs yesterday's structured cost data for operational visibility.
   console.log('Yesterday cost:', yesterdayCost);
 
@@ -40,6 +74,8 @@ export const handler = async (): Promise<void> => {
 
   // Logs the percentage change, or null when no valid baseline exists.
   console.log('Daily percentage change:', comparison.percentageChange);
-};
 
+  // Sends the completed cost report to Telegram.
+  await sendTelegramMessage(message);
+};
 

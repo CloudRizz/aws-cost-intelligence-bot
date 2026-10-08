@@ -45,5 +45,24 @@ export class AwsCostIntelligenceBotStack extends cdk.Stack {
         resources: ['*'],
       }),
     );
+
+    // Grants the Lambda read access to the Telegram parameters in SSM.
+    costIntelligenceLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ssm:GetParameter'],
+        resources: [
+          this.formatArn({
+            service: 'ssm',
+            resource: 'parameter',
+            resourceName: 'cloudrizz/cost-bot/telegram/token',
+          }),
+          this.formatArn({
+            service: 'ssm',
+            resource: 'parameter',
+            resourceName: 'cloudrizz/cost-bot/telegram/chat-id',
+          }),
+        ],
+      }),
+    );
   }
 }

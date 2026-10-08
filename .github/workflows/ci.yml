@@ -42,3 +42,19 @@ jobs:
       # Verifies that CDK can generate the CloudFormation template.
       - name: Synthesise CDK
         run: npx cdk synth
+
+  # Scans repository files for accidentally exposed credentials.
+  secret-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Downloads the repository onto the GitHub runner.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Runs Gitleaks to detect exposed secrets.
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          

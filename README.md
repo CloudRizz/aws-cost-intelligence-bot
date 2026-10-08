@@ -88,9 +88,8 @@ Every day, the bot reports:
 - Percentage increase or decrease
 - Month-to-date AWS spending
 
-### Telegram Report — Live Evidence
 
-<h2>📊 Automated Daily Cost Reports</h2>
+<h2>📊 Telegram Report — Live Evidence</h2>
 
 <table>
   <tr>
@@ -137,9 +136,17 @@ CloudWatch confirmed successful Lambda execution and Telegram delivery was indep
 
 ### 🧪 Automated Testing with Jest
 
-Jest is used alongside **AWS CDK Assertions** to validate application behaviour and infrastructure configuration before deployment.
+Jest and **AWS CDK Assertions** provide automated testing of application logic and infrastructure configuration before deployment.
 
-Tests cover cost-reporting logic and AWS infrastructure resources, helping identify issues before changes reach production.
+The project includes **17 automated tests**, covering cost calculations and AWS infrastructure validation to help identify regressions and configuration issues early.
+
+Run tests locally:
+
+```bash
+npm test -- --runInBand
+```
+
+Tests are also executed automatically through GitHub Actions alongside TypeScript compilation, CDK synthesis, Checkov and Gitleaks security scanning.
 
 **Validation results:**
 - ✅ 17 automated tests passed
@@ -169,6 +176,8 @@ This provides an additional quality gate alongside GitHub Actions CI/CD and infr
 
 ### 1. Clone & Install
 
+Requires Node.js 22, AWS CLI, configured AWS credentials and appropriate AWS deployment permissions.
+
 ```bash
 git clone https://github.com/CloudRizz/aws-cost-intelligence-bot.git
 cd aws-cost-intelligence-bot
@@ -177,7 +186,7 @@ npm ci
 
 ### 2. Configure Telegram
 
-Create a Telegram bot using [@BotFather](https://t.me/BotFather), then send `/start` to your new bot.
+Create a Telegram bot using [@BotFather](https://t.me/BotFather) and send `/start` to your new bot.
 
 Retrieve your chat ID by visiting:
 
@@ -185,41 +194,56 @@ Retrieve your chat ID by visiting:
 https://api.telegram.org/bot<BOT_TOKEN>/getUpdates
 ```
 
-Locate `message.chat.id` in the response.
+Locate `message.chat.id` in the JSON response.
 
-Store both credentials securely in AWS Systems Manager Parameter Store:
+Store your credentials securely in AWS Systems Manager Parameter Store:
 
 ```bash
 read -rsp "Telegram bot token: " BOT_TOKEN
 echo
 read -rp "Telegram chat ID: " CHAT_ID
 
-aws ssm put-parameter --name "/cloudrizz/cost-bot/telegram/token" \
-  --type SecureString --value "$BOT_TOKEN" --region eu-west-2
+aws ssm put-parameter \
+  --name "/cloudrizz/cost-bot/telegram/token" \
+  --type SecureString --value "$BOT_TOKEN" \
+  --region eu-west-2
 
-aws ssm put-parameter --name "/cloudrizz/cost-bot/telegram/chat-id" \
-  --type SecureString --value "$CHAT_ID" --region eu-west-2
+aws ssm put-parameter \
+  --name "/cloudrizz/cost-bot/telegram/chat-id" \
+  --type SecureString --value "$CHAT_ID" \
+  --region eu-west-2
 
 unset BOT_TOKEN CHAT_ID
 ```
 
-The parameter names must match those configured in the CDK application.
+Parameter names must match those configured in the CDK application. The commands use Bash and create new parameters; existing parameters require updating with `--overwrite`.
 
-### 3. Test & Deploy
+### 3. Configure Email Alerts
 
-Ensure the AWS CLI is authenticated to your AWS account with appropriate deployment permissions.
+Update the SNS notification email address in:
+
+`lib/aws-cost-intelligence-bot-stack.ts`
+
+Replace `hello@twrz.co.uk` with your preferred email address.
+
+After deployment, confirm the AWS SNS subscription email to activate CloudWatch alarm notifications.
+
+### 4. Test & Deploy
 
 ```bash
 npm run build
 npm test -- --runInBand
-
 npx cdk synth
+
+# Required once per AWS account/region if not already bootstrapped
+npx cdk bootstrap
+
 npx cdk deploy
 ```
 
-Once deployed, EventBridge Scheduler automatically triggers the Lambda **daily at 19:00 UK time**, delivering AWS cost reports directly to Telegram.
+Once deployed, EventBridge Scheduler automatically invokes the Lambda **daily at 19:00 UK time**, with GMT/BST adjustments handled through `Europe/London`.
 
-> **Note:** AWS charges may apply, including Cost Explorer API requests and the customer-managed KMS key. Never commit credentials to source control.
+> **Note:** This project deploys to `eu-west-2`. AWS charges may apply, including Cost Explorer API requests and the customer-managed KMS key. Never commit credentials to source control.
 
 ## 📝 Project Status
 

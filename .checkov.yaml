@@ -6,10 +6,18 @@ framework:
 # CKV_AWS_117: Lambda does not require VPC access.
 # CKV_AWS_158: CloudWatch uses default encryption at rest.
 # CKV_AWS_27: SQS-managed encryption is enabled; no customer-managed KMS key required.
+# CKV_AWS_26: SNS encryption omitted for low-cost operational alerts.
+# CloudWatch alarm publishing must remain compatible with SNS.
+# Topic carries operational alarm information, not application secrets.
 skip-check:
+  # CKV_AWS_115: Reserved concurrency is intentionally omitted.
+  # The AWS account quota requires at least 10 unreserved executions.
+  # This Lambda runs infrequently and uses the shared concurrency pool.
+  - CKV_AWS_115
   - CKV_AWS_117
   - CKV_AWS_158
   - CKV_AWS_27
+  - CKV_AWS_26
 
 # Produces concise terminal output.
 compact: true

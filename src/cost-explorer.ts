@@ -86,10 +86,19 @@ export const getPreviousDayCost = async (): Promise<CostData> => {
 export const getMonthToDateCost = async (): Promise<CostData> => {
   // Calculates today's date and the first day of the current month in UTC.
   const today = new Date();
-  const monthStart = new Date(today);
+  const monthStart = new Date(Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    1,
+  ));
 
-  monthStart.setUTCDate(1);
+  // Uses tomorrow as the exclusive end date to include today's available costs.
+  const tomorrow = new Date(Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate() + 1,
+  ));
 
-  // Retrieves the month-to-date cost using the shared Cost Explorer function.
-  return getCostForPeriod(monthStart, today, 'MONTHLY');
+  // Retrieves month-to-date costs, including on the first day of the month.
+  return getCostForPeriod(monthStart, tomorrow, 'MONTHLY');
 };

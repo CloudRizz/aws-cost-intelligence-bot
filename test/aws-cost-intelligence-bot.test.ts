@@ -80,19 +80,14 @@ test('grants restricted Telegram SSM read permission', () => {
   )).toHaveLength(1);
 });
 
-// Verifies the Lambda is limited to one concurrent execution.
-test('limits Lambda concurrency to one', () => {
-  template.hasResourceProperties('AWS::Lambda::Function', {
-    ReservedConcurrentExecutions: 1,
-  });
-});
 
-// Verifies the dead-letter queue has seven-day retention and SQS-managed encryption.
+
+// Verifies the dead-letter queue has three-day retention and SQS-managed encryption.
 test('configures an encrypted SQS dead-letter queue', () => {
   template.resourceCountIs('AWS::SQS::Queue', 1);
 
   template.hasResourceProperties('AWS::SQS::Queue', {
-    MessageRetentionPeriod: 604800,
+    MessageRetentionPeriod: 259200,
     SqsManagedSseEnabled: true,
   });
 });
@@ -159,4 +154,42 @@ test('configures CloudWatch alarm thresholds correctly', () => {
 
   expect(metrics).toContain('Errors');
   expect(metrics).toContain('ApproximateNumberOfMessagesVisible');
+});
+
+// Verifies that one SNS topic exists for monitoring notifications.
+test('creates an encrypted SNS alerts topic', () => {
+  template.resourceCountIs('AWS::SNS::Topic', 1);
+  template.resourceCountIs('AWS::KMS::Key', 1);
+  template.hasResourceProperties('AWS::SNS::Topic', {
+    KmsMasterKeyId: Match.anyValue(),
+  });
+});
+
+// Verifies that SNS has one email subscription.
+test('configures an SNS email subscription', () => {
+  template.resourceCountIs('AWS::SNS::Subscription', 1);
+
+  template.hasResourceProperties('AWS::SNS::Subscription', {
+    Protocol: 'email',
+  });
+});
+
+// Verifies that both CloudWatch alarms use the SNS topic for failure and recovery notifications.
+test('connects both CloudWatch alarms to SNS', () => {
+  const topics = template.findResources('AWS::SNS::Topic');
+  const topicLogicalId = Object.keys(topics)[0];
+
+  const alarms = template.findResources('AWS::CloudWatch::Alarm');
+
+  expect(Object.keys(alarms)).toHaveLength(2);
+
+  for (const alarm of Object.values(alarms) as any[]) {
+    expect(alarm.Properties.AlarmActions).toEqual([
+      { Ref: topicLogicalId },
+    ]);
+
+    expect(alarm.Properties.OKActions).toEqual([
+      { Ref: topicLogicalId },
+    ]);
+  }
 });

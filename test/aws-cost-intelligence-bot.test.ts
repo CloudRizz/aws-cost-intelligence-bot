@@ -72,3 +72,10 @@ test('grants restricted Telegram SSM read permission', () => {
   expect(JSON.stringify(resources.asArray())).toContain('cloudrizz/cost-bot/telegram/chat-id');
   expect(JSON.stringify(resources.asArray())).toContain('cloudrizz/cost-bot/telegram/token');
 });
+
+// Verifies the Lambda is limited to one concurrent execution.
+test('limits Lambda concurrency to one', () => {
+  template.hasResourceProperties('AWS::Lambda::Function', {
+    ReservedConcurrentExecutions: 1,
+  });
+});

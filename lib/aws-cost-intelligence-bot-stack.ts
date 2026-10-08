@@ -36,6 +36,9 @@ export class AwsCostIntelligenceBotStack extends cdk.Stack {
         minify: true,
         sourceMap: true,
       },
+
+      // Prevents overlapping Lambda executions.
+      reservedConcurrentExecutions: 1,
     });
 
     // Grants the Lambda permission to retrieve AWS cost and usage data.
